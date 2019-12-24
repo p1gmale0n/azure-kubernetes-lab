@@ -25,7 +25,7 @@ resource "null_resource" "azuread_service_principal_password" {
   depends_on = [ azuread_service_principal_password.this ]
 }
 
-module "aks" {
+module "this" {
   source  = "Azure/aks/azurerm"
   version = "2.0.0"
 
