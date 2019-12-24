@@ -18,6 +18,13 @@ resource "azuread_service_principal_password" "this" {
   end_date             = "2299-12-31T00:00:00Z"
 }
 
+resource "null_resource" "azuread_service_principal_password" {
+  triggers = {
+    password = random_password.this.result
+  }
+  depends_on = [ azuread_service_principal_password.this ]
+}
+
 module "aks" {
   source  = "Azure/aks/azurerm"
   version = "2.0.0"
@@ -27,7 +34,7 @@ module "aks" {
 
   kubernetes_version = var.kubernetes_version
   CLIENT_ID          = azuread_service_principal.this.application_id
-  CLIENT_SECRET      = azuread_service_principal_password.this.value
+  CLIENT_SECRET      = null_resource.azuread_service_principal_password.password
 
   agents_count = var.agents_count
   agents_size  = var.agents_size
