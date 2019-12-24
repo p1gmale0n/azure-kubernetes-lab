@@ -1,78 +1,39 @@
-data "azurerm_resource_group" "exist" {
-  count = var.create_resource_group ? 0 : 1
-  name  = var.resource_group_name
-
-  depends_on = [var.resource_group_name]
+resource "azuread_application" "this" {
+  name                       = var.name_prefix
+  available_to_other_tenants = false
 }
 
-locals {
-  location = var.create_resource_group ? var.location : data.azurerm_resource_group.exist[0].location
+resource "azuread_service_principal" "this" {
+  application_id = azuread_application.this.application_id
 }
 
-resource "azurerm_resource_group" "this" {
-  count    = var.create_resource_group ? 1 : 0
-  name     = var.resource_group_name
+resource "random_password" "this" {
+  length  = 32
+  special = false
+}
+
+resource "azuread_service_principal_password" "this" {
+  service_principal_id = azuread_service_principal.this.id
+  value                = random_password.this.result
+  end_date             = "2299-12-31T00:00:00Z"
+}
+
+module "aks" {
+  source  = "Azure/aks/azurerm"
+  version = "2.0.0"
+
+  prefix   = var.name_prefix
   location = var.location
-}
 
-resource "random_id" "log_analytics_workspace_name_suffix" {
-  byte_length = 8
-}
+  kubernetes_version = var.kubernetes_version
+  CLIENT_ID          = azuread_service_principal.this.application_id
+  CLIENT_SECRET      = azuread_service_principal_password.this.value
 
-resource "azurerm_log_analytics_workspace" "this" {
-  # The WorkSpace name has to be unique across the whole of azure, not just the current subscription/tenant.
-  name                = "${var.log_analytics_workspace_name}-${random_id.log_analytics_workspace_name_suffix.dec}"
-  location            = local.location
-  resource_group_name = var.resource_group_name
-  sku                 = "PerGB2018"
-}
+  agents_count = var.agents_count
+  agents_size  = var.agents_size
 
-resource "azurerm_log_analytics_solution" "this" {
-  solution_name         = "ContainerInsights"
-  location              = local.location
-  resource_group_name   = var.resource_group_name
-  workspace_resource_id = azurerm_log_analytics_workspace.this.id
-  workspace_name        = azurerm_log_analytics_workspace.this.name
-
-  plan {
-    publisher = "Microsoft"
-    product   = "OMSGallery/ContainerInsights"
-  }
-}
-
-resource "azurerm_kubernetes_cluster" "this" {
-  name                = var.cluster_name
-  location            = local.location
-  resource_group_name = var.resource_group_name
-  dns_prefix          = var.dns_prefix
-
-  linux_profile {
-    admin_username = "ubuntu"
-
-    ssh_key {
-      key_data = file(var.ssh_public_key)
-    }
-  }
-
-  default_node_pool {
-    name       = "agentpool"
-    node_count = var.agent_count
-    vm_size    = "Standard_DS1_v2"
-  }
-
-  service_principal {
-    client_id     = var.client_id
-    client_secret = var.client_secret
-  }
-
-  addon_profile {
-    oms_agent {
-      enabled                    = true
-      log_analytics_workspace_id = azurerm_log_analytics_workspace.this.id
-    }
-  }
-
-  tags = {
-    Environment = "Development"
-  }
+  log_analytics_workspace_sku = var.log_analytics_workspace_sku
+  log_retention_in_days       = var.log_retention_in_days
+  admin_username              = var.admin_username
+  public_ssh_key              = var.public_ssh_key
 }

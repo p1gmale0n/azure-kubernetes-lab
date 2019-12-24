@@ -1,42 +1,51 @@
-variable "client_id" {}
-variable "client_secret" {}
-
-variable "agent_count" {
-  default = 3
+variable "name_prefix" {
+  description = "The prefix for the resources created in the specified Azure Resource Group"
 }
 
-variable "ssh_public_key" {
-  default = "~/.ssh/id_rsa.pub"
+variable "location" {
+  default     = "eastus"
+  description = "The location for the AKS deployment"
 }
 
-variable "dns_prefix" {
-  default = "aks"
+# variable "client_id" {
+#   description = "The Client ID (appId) for the Service Principal used for the AKS deployment"
+# }
+
+# variable "client_secret" {
+#   description = "The Client Secret (password) for the Service Principal used for the AKS deployment"
+# }
+
+variable "admin_username" {
+  default     = "azureuser"
+  description = "The username of the local administrator to be created on the Kubernetes cluster"
 }
 
-variable cluster_name {
-  default = "aks"
+variable "agents_size" {
+  default     = "Standard_F2"
+  description = "The default virtual machine size for the Kubernetes agents"
 }
 
-variable resource_group_name {
-  default = "azure-aks-resource-group"
+variable "log_analytics_workspace_sku" {
+  description = "The SKU (pricing level) of the Log Analytics workspace. For new subscriptions the SKU should be set to PerGB2018"
+  default     = "PerGB2018"
 }
 
-variable "create_resource_group" {
-  type    = bool
-  default = true
+variable "log_retention_in_days" {
+  description = "The retention period for the logs in days"
+  default     = 30
 }
 
-
-variable location {
-  default = "germanywestcentral"
+variable "agents_count" {
+  description = "The number of Agents that should exist in the Agent Pool"
+  default     = 2
 }
 
-variable log_analytics_workspace_name {
-  default = "aksLogAnalyticsWorkspaceName"
+variable "kubernetes_version" {
+  description = "Version of Kubernetes specified when creating the AKS managed cluster. If not specified, the latest recommended version will be used at provisioning time (but won't auto-upgrade)."
+  default = ""
 }
 
-variable "module_depends" {
-  type    = list
-  default = null
-  description = "Indicates the resource this resource depends on."
+variable "public_ssh_key" {
+  description = "A custom ssh key to control access to the AKS cluster"
+  default     = ""
 }
