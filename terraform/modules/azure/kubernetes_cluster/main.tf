@@ -32,9 +32,9 @@ module "aks" {
   prefix   = var.name_prefix
   location = var.location
 
-  kubernetes_version = var.kubernetes_version
+  kubernetes_version = var.kubernetes_version != "" ? var.kubernetes_version : null
   CLIENT_ID          = azuread_service_principal.this.application_id
-  CLIENT_SECRET      = null_resource.azuread_service_principal_password.password
+  CLIENT_SECRET      = null_resource.azuread_service_principal_password.triggers.password
 
   agents_count = var.agents_count
   agents_size  = var.agents_size
